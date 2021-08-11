@@ -1,0 +1,221 @@
+---
+title: "Week 14"
+author: "charlie"
+date: "4/20/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+devtools::load_all() # our package
+
+
+set.seed(123)
+```
+
+```{r loading, include=F}
+library(ppclp) # Huanchen's package
+library(princurve) # Hastie's package
+
+library(tidyverse) # required by ppclp
+data("threeExample")
+y <- cbind(threeExample$x, threeExample$y)
+time.table <- matrix(ncol = 5, nrow = 3)
+```
+
+#Three MNIST dataset 
+(illustrates importance of Length penalty)
+```{r MNIST THREE, eval=F}
+
+# Our method
+ptm <- proc.time() # Start the clock!
+fitlength <- f_ppslp(y, s_k = 51, maxit = 100, thresh = 1e-5,
+    lambda_s = 10, lambda_l = 5, plot_update = F
+    )
+time.table[1, ] <- proc.time() - ptm # Stop the clock
+
+
+# HuanChen's method
+ptm <- proc.time() # Start the clock!
+tmpCurve <- ppclp2D(threeExample$x, threeExample$y, threeExample$xFix,
+    threeExample$yFix,
+    K = 50, degree_free = 10, lambda = 1, T = 100)
+time.table[2, ] <- proc.time() - ptm # Stop the clock
+
+# Hastie's method
+ptm <- proc.time() # Start the clock!
+fit <- principal_curve(y,
+    #start = cbind(tmpCurve$xFit, tmpCurve$yFit),
+    thresh = 1e-10, maxit = 100
+)
+time.table[3, ] <- proc.time() - ptm # Stop the clock
+time.table
+```
+
+```{r plotting for comparison, eval=F}
+pp_plot(fitlength)
+points(threeExample$xFix, threeExample$yFix, pch = 16, cex = 1.5, col = "red")
+lines(tmpCurve$xFit, tmpCurve$yFit, type = "l", col = "red", lwd = 2, lty = 1)
+
+lines(fit, type = "l", col = "green", lwd = 2, lty = 1) # miss fit the number three
+
+legend("bottomleft", c("Our method", "HuanChen", "Hastie"), lwd = c(1, 2, 1), col = c("blue", "red", "green"), lty = 1)
+```
+
+
+```{r plot 1, eval=T, out.width = "100%", fig.dim = c(9, 3)}
+# para setup
+attach("cv1.RData")
+
+benchmark <- T
+par(mfrow = c(1, 3), pty = "s")
+converge_1 <- sapply(1:5, outer_loop <- function(case) {
+                sapply(1:10, inner_loop <- function(i) {
+                    output <- cv1[[case]][[i]]
+                    if (is.atomic(output)) {
+                        print(i)
+                        print(case)
+                    }
+                    pp_plot(output)
+                    if (i == 10 && benchmark) {
+                        y <- output$y
+                        fit <- principal_curve(y, thresh = 1e-10, maxit = 100)
+                        plot(
+                            y[, 1:2],
+                            type = "p", pch = 16, cex = 0.8,
+                            xlim = grDevices::extendrange(y[, 1], f = .2),
+                            ylim = grDevices::extendrange(y[, 2], f = .2),
+                            xlab = "", ylab = "",
+                            main = "Benchmark: HS's")
+                        lines(fit, type = "l", col = "green", lwd = 2, lty = 1)
+
+                        plot(fit, main = "Benchmark: HS's",
+                            xlab = "", ylab = "",
+                            xlim = grDevices::extendrange(y[, 1], f = .2),
+                            ylim = grDevices::extendrange(y[, 2], f = .2)
+                            )
+                    }
+                    return(output$converge)
+            })
+})
+
+detach("file:cv1.RData")
+```
+
+## Check if converges
+```{r, eval=F}
+matrix(converge_1, ncol = 3, byrow = T)
+#save(time.table, fitlength, tmpCurve, fit, converge_1, file = "week14.RData")
+```
+
+
+
+
+## Propose Tunning method
+```{r, eval = F}
+attach("cv1.RData")
+s_n <- 100L
+s_k <- 25L
+s_q <- 2
+l_range <- exp(-2:6)
+maxit <- 1e4
+thresh <- 1e-3
+converge_1 <- refit(cv1, s_n, s_k, s_q, maxit, thresh, l_range)
+detach("file:cv1.RData")
+```
+
+
+
+```{r plot 3, eval=F}
+# para setup
+attach("cv3.RData")
+s_n <- 100L
+s_K <- 64L
+s_q <- 2
+
+i <- 0
+maxit <- 10000
+par(mfrow = c(1, 3), pty = "s")
+converge_2 <- sapply(1:11, outer_loop <- function(i) {
+            lambda_l <- exp(-5:5)[i]
+            # Inner loop
+            sapply(1:6, inner_loop <- function(case) {
+                output <- cv3[[i]][[case]]
+                if (is.atomic(output)) {
+                    print(i)
+                    print(case)
+                }
+
+                pp_plot(output)
+                return(output$converge)
+            })
+})
+detach("file:cv3.RData")
+#save(time.table, fitlength, tmpCurve, fit, converge_1, converge_2, file = "week14.RData")
+```
+
+## Check if converges
+```{r, eval = F}
+matrix((converge_2), ncol = 3, byrow = T)
+```
+
+
+
+
+```{r, eval=F, out.width = "100%", fig.dim = c(9, 3)}
+# para setup
+attach("test.RData")
+
+benchmark <- T
+par(mfrow = c(1, 3), pty = "s")
+converge <- sapply(1:5, outer_loop <- function(case) {
+                sapply(1:8, inner_loop <- function(i) {
+                    output <- test[[case]][[i]]
+                    if (is.atomic(output)) {
+                        print(i)
+                        print(case)
+                    }
+                    pp_plot(output)
+                    if (i == 8 && benchmark) {
+                        y <- output$y
+                        fit <- principal_curve(y, thresh = 1e-10, maxit = 100)
+                        plot(
+                            y[, 1:2],
+                            type = "p", pch = 16, cex = 0.8,
+                            xlim = grDevices::extendrange(y[, 1], f = .2),
+                            ylim = grDevices::extendrange(y[, 2], f = .2),
+                            xlab = "", ylab = "",
+                            main = "Benchmark: HS's")
+                        lines(fit, type = "l", col = "green", lwd = 2, lty = 1)
+                    }
+                    return(output$converge)
+            })
+})
+detach("file:test.RData")
+```
+
+```{r, eval=F}
+library(foreach)
+library(doParallel)
+doParallel::registerDoParallel(4)
+system.time({
+    # Outer loop
+    result <- parallel::mclapply(exp(-5:5), outer_loop <- function(lambda_l) {
+        # Inner loop
+        lambda_l <- 1
+        foreach(case = 1:6) %dopar% {
+            output <- cv_machine(case, s_n, s_q, s_K, lambda_l, maxit)
+
+            # return(output)
+
+            m_Y <- output$y
+            theta <- output$theta
+            lambda_s <- output$lambda_s
+
+            pp_plot(m_Y, theta, lambda_p, lambda_l, maxit)
+        }
+    })
+})
+doParallel::stopImplicitCluster()
+```
+

@@ -1,0 +1,126 @@
+---
+title: "Analysis"
+author: "Charlie"
+date: ""
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+devtools::load_all() # our package
+
+set.seed(123)
+```
+
+## Cross Validation on (lambda_s, Scaled_lam)
+```{r plot 2, eval=T, out.width = "100%", fig.dim = c(18, 6)}
+# para setup
+attach("scaled_cv1.RData")
+
+par(mfrow = c(1, 2), pty = "s")
+conv_1 <- analysis_plot(cv1, 1:7)
+
+detach("file:scaled_cv1.RData")
+```
+
+### MSE
+```{r, eval=T}
+round(conv_1, 5)
+```
+
+## Cross Validation on (lambda_s, lambda_l)
+```{r plot 3, eval=T, out.width = "100%", fig.dim = c(18, 6)}
+# para setup
+attach("unscaled_cv1.RData")
+
+par(mfrow = c(1, 2), pty = "s")
+conv_1 <- analysis_plot(cv1, 1:7)
+
+detach("file:unscaled_cv1.RData")
+```
+
+### MSE
+```{r, eval=T}
+round(conv_1, 5)
+```
+
+## Cross Validation Grid Search on (Spar, Scaled_lam)
+```{r plot 1, eval=T, out.width = "100%", fig.dim = c(18, 6)}
+# para setup
+attach("bothscaled_cv1.RData")
+
+par(mfrow = c(1, 2), pty = "s")
+conv_1 <- analysis_plot(cv1, 1:7)
+
+detach("file:bothscaled_cv1.RData")
+```
+
+### MSE
+```{r, eval=T}
+round(conv_1, 5)
+```
+
+## Cross Validation on (Spar, lambda_l = 0)
+```{r plot 4, eval=T, out.width = "100%", fig.dim = c(18, 6)}
+# para setup
+attach("cv3.RData")
+
+par(mfrow = c(1, 3), pty = "s")
+conv_3 <- analysis_plot(cv3, 1:7)
+
+detach("file:cv3.RData")
+```
+### MSE
+```{r, eval=T}
+round(conv_3, 5)
+```
+
+## Cross Validation on (Spar, lambda_l)
+```{r plot 6, eval=T, out.width = "100%", fig.dim = c(18, 6)}
+# para setup
+attach("cv3.RData")
+
+par(mfrow = c(1, 3), pty = "s")
+conv_3 <- analysis_plot(cv3, 1:7)
+
+detach("file:cv3.RData")
+```
+### MSE
+```{r, eval=T}
+round(conv_3, 5)
+```
+
+
+## Cross Validation on (Spar) for Hastie's Princurve package
+```{r plot 5, eval=T, out.width = "100%", fig.dim = c(18, 6)}
+# para setup
+attach("cv_prin.RData")
+
+par(mfrow = c(1, 2), pty = "s")
+# CV Tunning for Princurve
+loss <- c()
+for (case in 1:7) {
+    output <- cv_prin[[case]]
+    y <- output$y; iter <- output$num_iterations; dist <- output$dist;
+    spar <- output$spar
+    plot(
+        y[, 1:2],
+        type = "p", pch = 16, cex = 0.8, col = "grey",
+        xlim = grDevices::extendrange(y[, 1], f = .2),
+        ylim = grDevices::extendrange(y[, 2], f = .2),
+        xlab = "", ylab = "",
+        sub = paste("Iter:", iter, ", dist=", round(dist, 3)),
+        main = paste("Spar:", spar)
+    )
+    lines(output, type = "l", col = "green", lwd = 2, lty = 1)
+
+    theta <- output$s
+    loss[case] <- mse_calculate(case, theta)
+}
+
+detach("file:cv_prin.RData")
+```
+### MSE
+```{r, eval=T}
+round(loss, 5)
+```

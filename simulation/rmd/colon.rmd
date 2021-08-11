@@ -1,0 +1,42 @@
+---
+title: "Analysis"
+author: ""
+date: ""
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+devtools::load_all() # our package
+library(plotly)
+```
+
+```{r}
+attach("simulation/colon.RData")
+time.table
+```
+
+```{r 3Dplot, include=T}
+theta <- fitlength$theta
+# Plot the final result
+plot_ly()%>%
+add_trace(x = spectExample$x, y = spectExample$y, z = spectExample$z,
+        type = "scatter3d", mode = "markers", name = 'points',
+        marker = list(size = 1, color = 'rgba(0, 0, 0, .9)', opacity = 0.4))%>%
+add_trace(x = spectExample$xFix[1], y = spectExample$yFix[1], z = spectExample$zFix[1],
+        type = "scatter3d", mode = "markers", name = 'A',
+        marker = list(size = 10, color = 'rgba(0, 255, 0, .9)', opacity = 1))%>%
+add_trace(x = spectExample$xFix[2], y = spectExample$yFix[2], z = spectExample$zFix[2],
+        type = "scatter3d", mode = "markers", name = 'M',
+        marker = list(size = 10, color = 'rgba(0, 0, 255, .9)', opacity = 1))%>%
+add_trace(x = as.vector(tmpCurve$xFit), y = as.vector(tmpCurve$yFit), z = as.vector(tmpCurve$zFit),
+        type = "scatter3d", mode = "lines", name = "HuanChen line",
+        line = list(width = 3, color = 'rgba(255, 0, 0, .9)'))%>%
+add_trace(x = as.vector(theta[, 1]), y = as.vector(theta[, 2]), z = as.vector(theta[, 3]),
+        type = "scatter3d", mode = "lines", name = "Our line",
+        line = list(width = 3, color = 'rgba(0, 255, 0, .9)'))%>%
+add_trace(x = as.vector(fit$s[, 1]), y = as.vector(fit$s[, 2]), z = as.vector(fit$s[, 3]),
+        type = "scatter3d", mode = "markers", name = "HS line",
+        marker = list(size = 1, color = 'rgba(0, 0, 255, .9)', opacity = 1))
+detach("file:simulation/colon.RData")
+```
